@@ -8,11 +8,13 @@
 
 import UIKit
 
-class AnimalsTableViewController: UITableViewController {
+final class AnimalsTableViewController: UITableViewController {
     
     // MARK: - Properties
     
     private var animalNames: [String] = []
+    
+    let apiController = APIController()
 
     // MARK: - View Lifecycle
     
@@ -24,6 +26,10 @@ class AnimalsTableViewController: UITableViewController {
         super.viewDidAppear(animated)
         
         // transition to login view if conditions require
+        if apiController.bearer == nil {
+            performSegue(withIdentifier: "LoginViewModalSegue", sender: self)
+        }
+        
     }
 
     // MARK: - Table view data source
@@ -45,6 +51,39 @@ class AnimalsTableViewController: UITableViewController {
     
     @IBAction func getAnimals(_ sender: UIBarButtonItem) {
         // fetch all animals from API
+        apiController.fetchAllAnimalNames { (result) in
+//            if let names = try? result.get() {
+//                DispatchQueue.main.async {
+//                    self.animalNames = names
+//                    self.tableView.reloadData()
+//                }
+//            }
+            
+            do {
+                let names = try result.get()
+                DispatchQueue.main.async {
+                    self.animalNames = names
+                    self.tableView.reloadData()
+                }
+            } catch {
+                if let error = error as? NetworkError {
+                    switch error {
+                    case .noAuth:
+                        NSLog("No bearer token, please log in")
+                    case .badAuth:
+                        NSLog("Bearer token invalid")
+                    case .otherError:
+                        NSLog("Generic network error occured")
+                    case .badData:
+                        NSLog("Data received was invalid, corrupt or doesn't exist")
+                    case .noDecode:
+                        NSLog("Animal JSON data could not be decoded")
+                    default:
+                        NSLog("Other error occured")
+                    }
+                }
+            }
+        }
     }
     
     // MARK: - Navigation
@@ -53,6 +92,16 @@ class AnimalsTableViewController: UITableViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "LoginViewModalSegue" {
             // inject dependencies
+            if let loginVC = segue.destination as? LoginViewController {
+                loginVC.apiController = apiController
+            }
+        } else if segue.identifier == "ShowAnimalDetailSegue" {
+            if let detailVC = segue.destination as? AnimalDetailViewController {
+                if let indexPath = tableView.indexPathForSelectedRow {
+                    detailVC.animalName = animalNames[indexPath.row]
+                }
+                detailVC.apiController = apiController
+            }
         }
     }
 }
