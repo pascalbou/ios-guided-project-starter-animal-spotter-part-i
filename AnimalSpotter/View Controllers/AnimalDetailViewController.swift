@@ -8,7 +8,7 @@
 
 import UIKit
 
-class AnimalDetailViewController: UIViewController {
+final class AnimalDetailViewController: UIViewController {
     
     // MARK: - Properties
     

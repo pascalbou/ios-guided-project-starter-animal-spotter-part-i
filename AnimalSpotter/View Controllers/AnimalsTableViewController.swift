@@ -8,7 +8,7 @@
 
 import UIKit
 
-class AnimalsTableViewController: UITableViewController {
+final class AnimalsTableViewController: UITableViewController {
     
     // MARK: - Properties
     
