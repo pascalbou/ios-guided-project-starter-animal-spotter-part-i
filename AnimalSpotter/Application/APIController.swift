@@ -155,6 +155,47 @@ final class APIController {
     }
     
     // create function for fetching animal details
+    func fetchDetails(for animalName: String, completion: @escaping (Result<Animal, NetworkError>) -> ()) {
+        guard let bearer = bearer else {
+            completion(.failure(.noAuth))
+            return
+        }
+        
+        let animalUrl = baseUrl.appendingPathComponent("animals/\(animalName)")
+        
+        var request = URLRequest(url: animalUrl)
+        request.httpMethod = HTTPMethod.get.rawValue
+        request.setValue("Bearer \(bearer.token)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { (data, response, error) in
+            if let error = error {
+                NSLog("Error receiving animal name data: \(error)")
+                completion(.failure(.otherError))
+            }
+            
+            if let response = response as? HTTPURLResponse, response.statusCode == 401 {
+                completion(.failure(.badAuth))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(.badData))
+                return
+            }
+            
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .secondsSince1970
+            do {
+                let animal = try decoder.decode(Animal.self, from: data)
+                completion(.success(animal))
+            } catch {
+                NSLog("Error decoding animal object: \(error)")
+                completion(.failure(.noDecode))
+                return
+            }
+            
+        }.resume()
+    }
     
     // create function to fetch image
 }
